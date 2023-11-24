@@ -21,27 +21,25 @@ namespace WpfAppAssignment4
         private void AddBuildingButton_Click(object sender, RoutedEventArgs e)
         {
             // Validate and parse input fields
-            if (!int.TryParse(BuildingSizeTextBox.Text, out int size) || size <= 0)
+            if (!int.TryParse(BuildingSizeTextBox.Text, out int size) || size < 1000 || size > 50000)
             {
                 BuildingSizeTextBox.Background = Brushes.Red;
-                MessageBox.Show("Invalid building size. Please enter a positive integer.");
+                MessageBox.Show("Invalid building size. Please enter a positive integer between 1000 and 50000 square feet.");
                 return;
             }
-
-            if (!int.TryParse(LightBulbsTextBox.Text, out int lightBulbs) || lightBulbs < 0)
+            if (!int.TryParse(LightBulbsTextBox.Text, out int lightBulbs) || lightBulbs < 1 || lightBulbs > 20)
             {
                 LightBulbsTextBox.Background = Brushes.Red;
-                MessageBox.Show("Invalid number of light bulbs. Please enter a non-negative integer.");
+                MessageBox.Show("Invalid number of light bulbs. Please enter a value between 1 and 20.");
                 return;
             }
 
-            if (!int.TryParse(OutletsTextBox.Text, out int outlets) || outlets < 0)
+            if (!int.TryParse(OutletsTextBox.Text, out int outlets) || outlets < 1 || outlets > 50)
             {
                 OutletsTextBox.Background = Brushes.Red;
-                MessageBox.Show("Invalid number of outlets. Please enter a non-negative integer.");
+                MessageBox.Show("Invalid number of outlets. Please enter a value between 1 and 50.");
                 return;
             }
-
             if (!IsNumeric(CreditCardTextBox.Text) || CreditCardTextBox.Text.Length != 16)
             {
                 CreditCardTextBox.Background = Brushes.Red;
@@ -53,7 +51,7 @@ namespace WpfAppAssignment4
             BuildingType buildingType = (BuildingType)BuildingTypeComboBox.SelectedIndex;
 
             // AdditionalFeatures text
-            string additionalFeatures = AdditionalFeaturesTextBox.Text;
+            string additionalFeatures = GetAdditionalFeatures(buildingType);
 
             // Create a new Building instance
             Building building = new Building
@@ -123,7 +121,6 @@ namespace WpfAppAssignment4
                 MessageBox.Show($"Error saving buildings: {ex.Message}");
             }
         }
-
         private void LoadFromFileButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -140,8 +137,26 @@ namespace WpfAppAssignment4
                     // Deserialize JSON to list of buildings
                     buildings = JsonConvert.DeserializeObject<List<Building>>(json);
 
-                    // Sort buildings by customer name before updating the UI
-                    buildings.Sort((b1, b2) => string.Compare(b1.Name, b2.Name, StringComparison.Ordinal));
+                    // Sort buildings by building size before updating the UI
+                    buildings.Sort((b1, b2) => b1.Size.CompareTo(b2.Size));
+
+                    // Then, sort by customer name and building type
+                    buildings.Sort((b1, b2) =>
+                    {
+                        int sizeComparison = b1.Size.CompareTo(b2.Size);
+                        if (sizeComparison != 0)
+                        {
+                            return sizeComparison;
+                        }
+
+                        int nameComparison = string.Compare(b1.Name, b2.Name, StringComparison.Ordinal);
+                        if (nameComparison != 0)
+                        {
+                            return nameComparison;
+                        }
+
+                        return b1.BuildingType.CompareTo(b2.BuildingType);
+                    });
 
                     // Update the building information text
                     UpdateBuildingInfoText();
@@ -158,7 +173,6 @@ namespace WpfAppAssignment4
                 MessageBox.Show($"Error loading buildings: {ex.Message}");
             }
         }
-
         private void UpdateBuildingInfoText()
         {
             // Clear existing text
@@ -170,7 +184,6 @@ namespace WpfAppAssignment4
                 BuildingInfoTextBox.Text += $"{building}\n";
             }
         }
-
         private void ClearInputFields()
         {
             // Clear input fields
@@ -180,7 +193,6 @@ namespace WpfAppAssignment4
             LightBulbsTextBox.Text = "";
             OutletsTextBox.Text = "";
             CreditCardTextBox.Text = "";
-            AdditionalFeaturesTextBox.Text = "";
 
             // Reset background color of text boxes
             CustomerNameTextBox.Background = Brushes.White;
@@ -188,10 +200,30 @@ namespace WpfAppAssignment4
             LightBulbsTextBox.Background = Brushes.White;
             OutletsTextBox.Background = Brushes.White;
             CreditCardTextBox.Background = Brushes.White;
-            AdditionalFeaturesTextBox.Background = Brushes.White;
         }
-    }
+        private string GetAdditionalFeatures(BuildingType buildingType)
+        {
+            switch (buildingType)
+            {
+                case BuildingType.House:
+                    return "Fire alarms";
+                case BuildingType.Barn:
+                    return "Hay storage";
+                case BuildingType.Garage:
+                    return "Automatic doors";
+                default:
+                    return "Additional features";
+            }
+        }
 
+        private void BuildingTypeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+        }
+        private void BuildingInfoTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        { 
+        }
+
+    }
     public class Building
     {
         public string Name { get; set; } = "";
